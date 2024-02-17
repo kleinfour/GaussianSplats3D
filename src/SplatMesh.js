@@ -54,9 +54,9 @@ export class SplatMesh extends THREE.Mesh {
         this.globalSplatIndexToSceneIndexMap = [];
 
         this.lastBuildSplatCount = [];
+        this.lastBuildScenes = [];
         this.lastBuildMaxSplatCount = 0;
         this.lastBuildSceneCount = 0;
-
     }
 
     /**
@@ -504,11 +504,22 @@ export class SplatMesh extends THREE.Mesh {
         this.scenes = newScenes;
 
         let isUpdateBuild = true;
-        if (this.lastBuildSceneCount !== this.scenes.length || this.lastBuildMaxSplatCount !== maxSplatCount) {
+        if (this.lastBuildSceneCount !== this.scenes.length || this.lastBuildMaxSplatCount !== maxSplatCount) isUpdateBuild = false;
+        if (this.scenes.length === this.lastBuildScenes.length) {
+            for (let i = 0; i < this.scenes.length; i++) {
+                if (this.scenes[i].splatBuffer !== this.lastBuildScenes[i].splatBuffer) {
+                    isUpdateBuild = false;
+                    break;
+                }
+            }
+        } else {
+            isUpdateBuild = false;
+        }
+        if (!isUpdateBuild) {
             this.lastBuildSplatCount = [];
+            this.lastBuildScenes = [];
             for (let i = 0; i < this.scenes.length; i++) this.lastBuildSplatCount[i] = 0;
             this.lastBuildMaxSplatCount = 0;
-            isUpdateBuild = false;
         }
 
         // TODO(StreamBuild): Clean up check for streaming construction here
@@ -525,7 +536,10 @@ export class SplatMesh extends THREE.Mesh {
         if (this.enableDistancesComputationOnGPU) this.setupDistancesComputationTransformFeedback();
         this.resetGPUDataFromSplatBuffers(isUpdateBuild);
 
-        for (let i = 0; i < this.scenes.length; i++) this.lastBuildSplatCount[i] = this.scenes[i].splatBuffer.getSplatCount();
+        for (let i = 0; i < this.scenes.length; i++) {
+            this.lastBuildSplatCount[i] = this.scenes[i].splatBuffer.getSplatCount();
+            this.lastBuildScenes[i] = this.scenes[i];
+        }
         this.lastBuildMaxSplatCount = this.getMaxSplatCount();
         this.lastBuildSceneCount = this.scenes.length;
 
@@ -1336,8 +1350,10 @@ export class SplatMesh extends THREE.Mesh {
             const scene = this.getScene(i);
             const splatBuffer = scene.splatBuffer;
             const sceneTransform = applySceneTransform ? scene.transform : null;
-            if (covariances) splatBuffer.fillSplatCovarianceArray(covariances, sceneTransform,
-                                                                  srcFrom, srcTo, localDestFrom, this.halfPrecisionCovariancesOnGPU ? 1 : 0);
+            if (covariances) {
+                splatBuffer.fillSplatCovarianceArray(covariances, sceneTransform,
+                                                     srcFrom, srcTo, localDestFrom, this.halfPrecisionCovariancesOnGPU ? 1 : 0);
+            }
             if (centers) splatBuffer.fillSplatCenterArray(centers, sceneTransform, srcFrom, srcTo, localDestFrom);
             if (colors) splatBuffer.fillSplatColorArray(colors, sceneTransform, srcFrom, srcTo, localDestFrom);
             destfrom += splatBuffer.getSplatCount();

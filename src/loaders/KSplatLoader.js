@@ -2,7 +2,6 @@ import { SplatBuffer } from './SplatBuffer.js';
 import { fetchWithProgress } from '../Util.js';
 
 
-
 let fetchWorker;
 function fetchWorkerFunc(self) {
 
@@ -36,13 +35,11 @@ function checkAndCreateFetchWorker() {
                 }),
             ),
         );
-    
-    
         fetchWorker.postMessage({
             'init': {}
         });
     }
-} 
+}
 
 export class KSplatLoader {
 
@@ -142,9 +139,9 @@ export class KSplatLoader {
                             for (let s = 0; s < sectionCount; s++) {
                                 splatCount += sectionHeaders[s].splatCount;
                             }
-      
+
                             if (!fullSplatBuffer) fullSplatBuffer = new SplatBuffer(fullBuffer, false);
-                            fullSplatBuffer.update(sectionCount, splatCount);
+                            fullSplatBuffer.updateLoadedCounts(sectionCount, splatCount);
 
                             onSectionBuilt(fullSplatBuffer);
 
@@ -153,7 +150,6 @@ export class KSplatLoader {
                             } else {
                                 window.setTimeout(() => checkAndLoadSections(), 100);
                             }
-                            break;
                         }
                         if (i < header.maxSectionCount) byteOffset += sectionHeaders[i].storageSizeBytes;
                     }

@@ -496,18 +496,22 @@ export class Viewer {
         };
 
         const onFirstBuild = (splatBuffer, resolve) => {
-            if (showLoadingSpinner) this.loadingSpinner.hide();
+            let hideLoadingSpinnerAfterAdd = false;
+            if (showLoadingSpinner) {
+                hideLoadingSpinnerAfterAdd = true;
+                if (streamAndBuildSections) showLoadingSpinner = false;
+            }
             if (options.onProgress) options.onProgress(0, '0%', 'processing');
             this.addSplatBuffers([splatBuffer], [splatBufferOptions], showLoadingSpinner).then(() => {
                 if (options.onProgress) options.onProgress(100, '100%', 'processing');
-                if (streamAndBuildSections) showLoadingSpinner = false;
+                if (hideLoadingSpinnerAfterAdd) this.loadingSpinner.hide();
                 resolve();
             });
         };
 
         if (streamAndBuildSections) {
             let resolve;
-            const sectionProgress = format !== SceneFormat.KSplat ? undefined : (splatBuffer) => {
+            const sectionProgress = (splatBuffer) => {
                 onFirstBuild(splatBuffer, resolve);
             };
             const loadPromise = this.loadFileToSplatBuffer(path, options.splatAlphaRemovalThreshold,
@@ -734,10 +738,8 @@ export class Viewer {
         const allSplatBufferOptions = this.splatMesh.splatBufferOptions || [];
         allSplatBuffers.push(...splatBuffers);
         allSplatBufferOptions.push(...splatBufferOptions);
-
         if (this.renderer) this.splatMesh.setRenderer(this.renderer);
         this.splatMesh.build(allSplatBuffers, allSplatBufferOptions, true);
-        
         this.splatMesh.frustumCulled = false;
     }
 

@@ -82,7 +82,7 @@ export class SplatBuffer {
     }
 
     // TODO: Re-implement to use eigen decomposition to compute scale & rotation from covariance.
-    getSplatScaleAndRotation = function() {
+    /* getSplatScaleAndRotation = function() {
 
         const scaleMatrix = new THREE.Matrix4();
         const rotationMatrix = new THREE.Matrix4();
@@ -91,16 +91,16 @@ export class SplatBuffer {
 
         return function(globalSplatIndex, outScale, outRotation, transform) {
             // TODO: Implement!!
-    
-            /*if (transform) {
+
+            if (transform) {
                 scaleMatrix.makeScale(outScale.x, outScale.y, outScale.z);
                 rotationMatrix.makeRotationFromQuaternion(outRotation);
                 tempMatrix.copy(scaleMatrix).multiply(rotationMatrix).multiply(transform);
                 tempMatrix.decompose(tempPosition, outRotation, outScale);
-            }*/
+            }
         };
 
-    }();
+    }();*/
 
     getSplatColor(globalSplatIndex, outColor, transform) {
         const sectionIndex = this.globalSplatIndexToSectionMap[globalSplatIndex];
@@ -310,7 +310,7 @@ export class SplatBuffer {
         let sectionHeaderBase8 = 0;
         let sectionHeaderBase16 = sectionHeaderBase8 / 2;
         let sectionHeaderBase32 = sectionHeaderBase8 / 4;
-        let sectionBase8 = SplatBuffer.HeaderSizeBytes + header.maxSectionCount * SplatBuffer.SectionHeaderSizeBytes;;
+        let sectionBase8 = SplatBuffer.HeaderSizeBytes + header.maxSectionCount * SplatBuffer.SectionHeaderSizeBytes;
         let splatCountOffset = 0;
         for (let i = 0; i < maxSectionCount; i++) {
             const splatCount = sectionHeaderArrayUint32[sectionHeaderBase32];
@@ -413,7 +413,7 @@ export class SplatBuffer {
         }
     }
 
-    update(newSectionCount, newSplatCount) {
+    updateLoadedCounts(newSectionCount, newSplatCount) {
         this.sectionCount = newSectionCount;
         this.splatCount = newSplatCount;
     }
