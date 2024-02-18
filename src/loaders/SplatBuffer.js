@@ -168,7 +168,7 @@ export class SplatBuffer {
         const thf = THREE.DataUtils.toHalfFloat.bind(THREE.DataUtils);
         const fhf = THREE.DataUtils.fromHalfFloat.bind(THREE.DataUtils);
 
-        return function(scale, rotation, transform, outCovariance, outOffset = 0, currentCompressionLevel, desiredOutputCompressionLevel) {
+        return function(scale, rotation, transform, outCovariance, outOffset = 0, desiredOutputCompressionLevel) {
 
             tempMatrix4.makeScale(scale.x, scale.y, scale.z);
             scaleMatrix.setFromMatrix4(tempMatrix4);
@@ -186,29 +186,20 @@ export class SplatBuffer {
                 transformedCovariance.premultiply(transform3x3);
             }
 
-            if (desiredOutputCompressionLevel === currentCompressionLevel) {
+            if (desiredOutputCompressionLevel === 1) {
+                outCovariance[outOffset] = thf(transformedCovariance.elements[0]);
+                outCovariance[outOffset + 1] = thf(transformedCovariance.elements[3]);
+                outCovariance[outOffset + 2] = thf(transformedCovariance.elements[6]);
+                outCovariance[outOffset + 3] = thf(transformedCovariance.elements[4]);
+                outCovariance[outOffset + 4] = thf(transformedCovariance.elements[7]);
+                outCovariance[outOffset + 5] = thf(transformedCovariance.elements[8]);
+            } else {
                 outCovariance[outOffset] = transformedCovariance.elements[0];
                 outCovariance[outOffset + 1] = transformedCovariance.elements[3];
                 outCovariance[outOffset + 2] = transformedCovariance.elements[6];
                 outCovariance[outOffset + 3] = transformedCovariance.elements[4];
                 outCovariance[outOffset + 4] = transformedCovariance.elements[7];
                 outCovariance[outOffset + 5] = transformedCovariance.elements[8];
-            } else {
-                if (desiredOutputCompressionLevel === 1 && currentCompressionLevel === 0) {
-                    outCovariance[outOffset] = thf(transformedCovariance.elements[0]);
-                    outCovariance[outOffset + 1] = thf(transformedCovariance.elements[3]);
-                    outCovariance[outOffset + 2] = thf(transformedCovariance.elements[6]);
-                    outCovariance[outOffset + 3] = thf(transformedCovariance.elements[4]);
-                    outCovariance[outOffset + 4] = thf(transformedCovariance.elements[7]);
-                    outCovariance[outOffset + 5] = thf(transformedCovariance.elements[8]);
-                } else {
-                    outCovariance[outOffset] = fhf(transformedCovariance.elements[0]);
-                    outCovariance[outOffset + 1] = fhf(transformedCovariance.elements[3]);
-                    outCovariance[outOffset + 2] = fhf(transformedCovariance.elements[6]);
-                    outCovariance[outOffset + 3] = fhf(transformedCovariance.elements[4]);
-                    outCovariance[outOffset + 4] = fhf(transformedCovariance.elements[7]);
-                    outCovariance[outOffset + 5] = fhf(transformedCovariance.elements[8]);
-                }
             }
                 
         };
@@ -242,7 +233,7 @@ export class SplatBuffer {
                          this.fbf(section.rotationArray[rotationSrcBase + 3]),
                          this.fbf(section.rotationArray[rotationSrcBase]));
 
-            SplatBuffer.computeCovariance(scale, rotation, transform, covarianceArray, covarianceDestBase, this.compressionLevel, desiredOutputCompressionLevel);
+            SplatBuffer.computeCovariance(scale, rotation, transform, covarianceArray, covarianceDestBase, desiredOutputCompressionLevel);
         }
     }
 
@@ -448,9 +439,8 @@ export class SplatBuffer {
         const sectionHeaderBuffers = [];
         let totalSplatCount = 0;
 
-        const tempScale = new THREE.Vector3();
         const tempRotation = new THREE.Quaternion();
-        const tempCov = [];
+        const thf = THREE.DataUtils.toHalfFloat.bind(THREE.DataUtils);
 
         for (let i = 0; i < splatArrays.length; i ++) {
             const splatArray = splatArrays[i];
@@ -526,7 +516,6 @@ export class SplatBuffer {
                         const center = new Uint16Array(centerBuffer, outSplatCount * bytesPerCenter, SplatBuffer.CenterComponentCount);
                         const scale = new Uint16Array(scaleBuffer, outSplatCount * bytesPerScale, 3);
                         const rot = new Uint16Array(rotationBuffer, outSplatCount * bytesPerRotation, 4);
-                        const thf = THREE.DataUtils.toHalfFloat.bind(THREE.DataUtils);
                         if (validSplats['scale_0'][row] !== undefined) {
                             tempRotation.set(validSplats['rot_1'][row], validSplats['rot_2'][row],
                                              validSplats['rot_3'][row], validSplats['rot_0'][row]);
