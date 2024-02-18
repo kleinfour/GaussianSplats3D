@@ -24,7 +24,6 @@ export class SplatBuffer {
         1: {
             BytesPerCenter: 6,
             BytesPerColor: 4,
-            BytesPerCovariance: 12,
             BytesPerScale: 6,
             BytesPerRotation: 8,
             ScaleRange: 32767
@@ -211,13 +210,6 @@ export class SplatBuffer {
                     outCovariance[outOffset + 5] = fhf(transformedCovariance.elements[8]);
                 }
             }
-
-            outCovariance[outOffset] = 1.1;
-            outCovariance[outOffset + 1] = 0.0;
-            outCovariance[outOffset + 2] = 0.0;
-            outCovariance[outOffset + 3] = 1.1;
-            outCovariance[outOffset + 4] = 0.0;
-            outCovariance[outOffset + 5] = 1.1;
                 
         };
 
