@@ -166,7 +166,6 @@ export class SplatBuffer {
         const transform3x3 = new THREE.Matrix3();
         const transform3x3Transpose = new THREE.Matrix3();
         const thf = THREE.DataUtils.toHalfFloat.bind(THREE.DataUtils);
-        const fhf = THREE.DataUtils.fromHalfFloat.bind(THREE.DataUtils);
 
         return function(scale, rotation, transform, outCovariance, outOffset = 0, desiredOutputCompressionLevel) {
 
@@ -224,7 +223,7 @@ export class SplatBuffer {
             const scaleSrcBase = localSplatIndex * SplatBuffer.ScaleComponentCount;
             const rotationSrcBase = localSplatIndex * SplatBuffer.RotationComponentCount;
             const covarianceDestBase = (i - srcFrom + destFrom) * SplatBuffer.CovarianceComponentCount;
-            
+
             scale.set(this.fbf(section.scaleArray[scaleSrcBase]),
                       this.fbf(section.scaleArray[scaleSrcBase + 1]),
                       this.fbf(section.scaleArray[scaleSrcBase + 2]));
