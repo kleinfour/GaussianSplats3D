@@ -35,7 +35,14 @@ class SplatSubTree {
         const minVector = new THREE.Vector3().fromArray(workerSubTreeNode.min);
         const maxVector = new THREE.Vector3().fromArray(workerSubTreeNode.max);
         const convertedNode = new SplatTreeNode(minVector, maxVector, workerSubTreeNode.depth, workerSubTreeNode.id);
-        convertedNode.data = workerSubTreeNode.data;
+        if (workerSubTreeNode.data.indexes) {
+            convertedNode.data = {
+                'indexes': []
+            }
+            for (let index of workerSubTreeNode.data.indexes) {
+                convertedNode.data.indexes.push(index);
+            }
+        }
         if (workerSubTreeNode.children) {
             for (let child of workerSubTreeNode.children) {
                 convertedNode.children.push(SplatSubTree.convertWorkerSubTreeNode(child));
