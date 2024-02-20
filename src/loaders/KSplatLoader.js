@@ -143,9 +143,10 @@ export class KSplatLoader {
                             if (!fullSplatBuffer) fullSplatBuffer = new SplatBuffer(fullBuffer, false);
                             fullSplatBuffer.updateLoadedCounts(sectionCount, splatCount);
 
-                            onSectionBuilt(fullSplatBuffer);
+                            const loadComplete = sectionCount >= header.maxSectionCount;
 
-                            if (sectionCount >= header.maxSectionCount) {
+                            onSectionBuilt(fullSplatBuffer, loadComplete);
+                            if (loadComplete) {
                                 sectionsLoadResolvePromise();
                             } else {
                                 window.setTimeout(() => checkAndLoadSections(), 100);

@@ -495,14 +495,14 @@ export class Viewer {
             'splatAlphaRemovalThreshold': options.splatAlphaRemovalThreshold,
         };
 
-        const onFirstBuild = (splatBuffer, resolve) => {
+        const onFirstBuild = (splatBuffer, resolve, finalBuild) => {
             let hideLoadingSpinnerAfterAdd = false;
             if (showLoadingSpinner) {
                 hideLoadingSpinnerAfterAdd = true;
                 if (streamAndBuildSections) showLoadingSpinner = false;
             }
             if (options.onProgress) options.onProgress(0, '0%', 'processing');
-            this.addSplatBuffers([splatBuffer], [splatBufferOptions], showLoadingSpinner).then(() => {
+            this.addSplatBuffers([splatBuffer], [splatBufferOptions], showLoadingSpinner, finalBuild).then(() => {
                 if (options.onProgress) options.onProgress(100, '100%', 'processing');
                 if (hideLoadingSpinnerAfterAdd) this.loadingSpinner.hide();
                 resolve();
@@ -511,8 +511,8 @@ export class Viewer {
 
         if (streamAndBuildSections) {
             let resolve;
-            const sectionProgress = (splatBuffer) => {
-                onFirstBuild(splatBuffer, resolve);
+            const sectionProgress = (splatBuffer, loadComplete) => {
+                onFirstBuild(splatBuffer, resolve, loadComplete);
             };
             const loadPromise = this.loadFileToSplatBuffer(path, options.splatAlphaRemovalThreshold,
                                                            downloadProgress, true, sectionProgress, format);
@@ -524,7 +524,7 @@ export class Viewer {
                                                            downloadProgress, false, undefined, format);
             return new AbortablePromise((resolve, reject) => {
                 loadPromise.then((splatBuffer) => {
-                    onFirstBuild(splatBuffer, resolve);
+                    onFirstBuild(splatBuffer, resolve, true);
                 })
                 .catch(() => {
                     if (showLoadingSpinner) this.loadingSpinner.hide();
@@ -597,7 +597,7 @@ export class Viewer {
             .then((splatBuffers) => {
                 if (showLoadingSpinner) this.loadingSpinner.hide();
                 if (onProgress) options.onProgress(0, '0%', 'processing');
-                this.addSplatBuffers(splatBuffers, sceneOptions, showLoadingSpinner).then(() => {
+                this.addSplatBuffers(splatBuffers, sceneOptions, showLoadingSpinner, true).then(() => {
                     if (onProgress) onProgress(100, '100%', 'processing');
                     resolve();
                 });
@@ -652,7 +652,7 @@ export class Viewer {
         let loadPromise;
         let loadCount = 0;
 
-        return function(splatBuffers, splatBufferOptions = [], showLoadingSpinner = true) {
+        return function(splatBuffers, splatBufferOptions = [], showLoadingSpinner = true, buildSplatTrees) {
             this.splatRenderingInitialized = false;
             loadCount++;
 
@@ -681,7 +681,7 @@ export class Viewer {
                         this.loadingSpinner.setMessage(`Processing splats...`);
                     }
                     window.setTimeout(() => {
-                        this.addSplatBuffersToMesh(splatBuffers, splatBufferOptions);
+                        this.addSplatBuffersToMesh(splatBuffers, splatBufferOptions, buildSplatTrees);
                         // TODO(StreamBuild): Clean up check for streaming construction here
                         const maxSplatCount = this.splatMesh.getMaxSplatCount();
                         if (this.sortWorker && this.sortWorker.maxSplatCount !== maxSplatCount) {
@@ -733,13 +733,13 @@ export class Viewer {
      *         scale (Array<number>):      Scene's scale, defaults to [1, 1, 1]
      * }
      */
-    addSplatBuffersToMesh(splatBuffers, splatBufferOptions) {
+    addSplatBuffersToMesh(splatBuffers, splatBufferOptions, buildSplatTrees = false) {
         const allSplatBuffers = this.splatMesh.splatBuffers || [];
         const allSplatBufferOptions = this.splatMesh.splatBufferOptions || [];
         allSplatBuffers.push(...splatBuffers);
         allSplatBufferOptions.push(...splatBufferOptions);
         if (this.renderer) this.splatMesh.setRenderer(this.renderer);
-        this.splatMesh.build(allSplatBuffers, allSplatBufferOptions, true);
+        this.splatMesh.build(allSplatBuffers, allSplatBufferOptions, true, buildSplatTrees);
         this.splatMesh.frustumCulled = false;
     }
 

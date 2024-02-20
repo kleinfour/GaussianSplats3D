@@ -419,8 +419,8 @@ export class SplatMesh extends THREE.Mesh {
         let totalSplatCount = 0;
         for (let s = 0; s < splatBuffers.length; s++) {
             const splatBuffer = splatBuffers[s];
-            const splatCount = splatBuffer.getSplatCount();
-            for (let i = 0; i < splatCount; i++) {
+            const maxSplatCount = splatBuffer.getMaxSplatCount();
+            for (let i = 0; i < maxSplatCount; i++) {
                 localSplatIndexMap[totalSplatCount] = i;
                 sceneIndexMap[totalSplatCount] = s;
                 totalSplatCount++;
@@ -496,7 +496,7 @@ export class SplatMesh extends THREE.Mesh {
      * @param {Boolean} keepSceneTransforms For a scene that already exists and is being overwritten, this flag
      *                                      says to keep the transform from the existing scene.
      */
-    build(splatBuffers, sceneOptions, keepSceneTransforms = true) {
+    build(splatBuffers, sceneOptions, keepSceneTransforms = true, buildSplatTrees = false) {
 
         const maxSplatCount = SplatMesh.getTotalMaxSplatCountForSplatBuffers(splatBuffers);
 
@@ -534,7 +534,6 @@ export class SplatMesh extends THREE.Mesh {
             this.disposeMeshData();
             this.geometry = SplatMesh.buildGeomtery(maxSplatCount);
             this.material = SplatMesh.buildMaterial(this.dynamicMode);
-
             const indexMaps = SplatMesh.buildSplatIndexMaps(splatBuffers);
             this.globalSplatIndexToLocalSplatIndexMap = indexMaps.localSplatIndexMap;
             this.globalSplatIndexToSceneIndexMap = indexMaps.sceneIndexMap;
@@ -550,14 +549,13 @@ export class SplatMesh extends THREE.Mesh {
         this.lastBuildMaxSplatCount = this.getMaxSplatCount();
         this.lastBuildSceneCount = this.scenes.length;
 
-        // TODO: Re-enable splat tree construction after figuring out how to speed it up or
-        // move it to the backgound
-        /*
-        this.disposeSplatTree();
-        SplatMesh.buildSplatTree(this, sceneOptions.map(options => options.splatAlphaRemovalThreshold || 1))
-        .then((splatTree) => {
-            this.splatTree = splatTree;
-        });*/
+        if (buildSplatTrees) {
+            this.disposeSplatTree();
+            SplatMesh.buildSplatTree(this, sceneOptions.map(options => options.splatAlphaRemovalThreshold || 1))
+            .then((splatTree) => {
+           //     this.splatTree = splatTree;
+            });
+        }
     }
 
     /**
