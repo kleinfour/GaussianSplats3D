@@ -1249,6 +1249,7 @@ export class Viewer {
             const splatTree = this.splatMesh.getSplatTree();
 
             if (splatTree) {
+                console.time("gatherA")
                 baseModelView.copy(this.camera.matrixWorld).invert();
                 baseModelView.multiply(this.splatMesh.matrixWorld);
 
@@ -1265,6 +1266,7 @@ export class Viewer {
                     const nodeCount = subTree.nodesWithIndexes.length;
                     for (let i = 0; i < nodeCount; i++) {
                         const node = subTree.nodesWithIndexes[i];
+                        if (!node.data.indexes || node.data.indexes.length === 0) continue;
                         tempVector.copy(node.center).applyMatrix4(modelView);
 
                         const distanceToNode = tempVector.length();
@@ -1289,13 +1291,18 @@ export class Viewer {
                         nodeRenderCount++;
                     }
                 }
+                console.timeEnd("gatherA")
 
+                console.time("gatherB")
                 nodeRenderList.length = nodeRenderCount;
                 nodeRenderList.sort((a, b) => {
                     if (a.data.distanceToNode < b.data.distanceToNode) return -1;
                     else return 1;
                 });
 
+                console.timeEnd("gatherB")
+
+                console.time("gatherC")
                 let currentByteOffset = splatRenderCount * Constants.BytesPerInt;
                 for (let i = 0; i < nodeRenderCount; i++) {
                     const node = nodeRenderList[i];
@@ -1306,6 +1313,8 @@ export class Viewer {
                     destView.set(node.data.indexes);
                     currentByteOffset -= windowSizeBytes;
                 }
+
+                console.timeEnd("gatherC")
 
                 return splatRenderCount;
             } else {

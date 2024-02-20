@@ -332,7 +332,9 @@ export class SplatBuffer {
 
             let centerBufferSizeBytes = splatCount * bytesPerCenter;
             centerBufferSizeBytes += centerBufferSizeBytes % 4;
-            const splatDataStorageSizeBytes = centerBufferSizeBytes + (bytesPerScale + bytesPerRotation + bytesPerColor) * splatCount;
+            let scaleBufferSizeBytes = splatCount * bytesPerScale;
+            scaleBufferSizeBytes += scaleBufferSizeBytes % 4;
+            const splatDataStorageSizeBytes = centerBufferSizeBytes + scaleBufferSizeBytes + (bytesPerRotation + bytesPerColor) * splatCount;
             const storageSizeBytes = splatDataStorageSizeBytes + bucketsStorageSizeBytes;
             const sectionHeader = {
                 splatCountOffset: splatCountOffset,
@@ -396,19 +398,20 @@ export class SplatBuffer {
             let FloatArray = (this.compressionLevel === 0) ? Float32Array : Uint16Array;
             let centerArraySizeBytes = section.splatCount * this.bytesPerCenter;
             centerArraySizeBytes += centerArraySizeBytes % 4;
-            const centerArraySizeElements = centerArraySizeBytes / ((this.compressionLevel === 0) ? 4 : 2);
-            section.centerArray = new FloatArray(this.bufferData, sectionBase, centerArraySizeElements);
+            let scaleArraySizeBytes = section.splatCount * this.bytesPerScale;
+            scaleArraySizeBytes += scaleArraySizeBytes % 4;
+            section.centerArray = new FloatArray(this.bufferData, sectionBase, section.splatCount * SplatBuffer.CenterComponentCount);
             section.scaleArray = new FloatArray(this.bufferData, sectionBase + centerArraySizeBytes,
                                                 section.splatCount * SplatBuffer.ScaleComponentCount);
             section.rotationArray = new FloatArray(this.bufferData,
-                                                   sectionBase + centerArraySizeBytes + this.bytesPerScale * section.splatCount,
+                                                   sectionBase + centerArraySizeBytes + scaleArraySizeBytes,
                                                    section.splatCount * SplatBuffer.RotationComponentCount);
             section.colorArray = new Uint8Array(this.bufferData,
                                                 sectionBase + centerArraySizeBytes +
-                                                (this.bytesPerScale + this.bytesPerRotation) * section.splatCount,
+                                                scaleArraySizeBytes + this.bytesPerRotation * section.splatCount,
                                                 section.splatCount * SplatBuffer.ColorComponentCount);
-            sectionBase += centerArraySizeBytes + (this.bytesPerScale + this.bytesPerRotation + this.bytesPerColor) * section.splatCount +
-                                                   SplatBuffer.BucketStorageSizeBytes * section.bucketCount;
+            sectionBase += centerArraySizeBytes + scaleArraySizeBytes + (this.bytesPerRotation + this.bytesPerColor) * section.splatCount +
+                           SplatBuffer.BucketStorageSizeBytes * section.bucketCount;
         }
     }
 
@@ -479,8 +482,10 @@ export class SplatBuffer {
             let centerBufferSizeBytes = bytesPerCenter * paddedSplatCount;
             centerBufferSizeBytes += centerBufferSizeBytes % 4;
             const centerBuffer = new ArrayBuffer(centerBufferSizeBytes);
+            let scaleBufferSizeBytes = bytesPerScale * paddedSplatCount;
+            scaleBufferSizeBytes += scaleBufferSizeBytes % 4;
+            const scaleBuffer = new ArrayBuffer(scaleBufferSizeBytes);
             const rotationBuffer = new ArrayBuffer(bytesPerRotation * paddedSplatCount);
-            const scaleBuffer = new ArrayBuffer(bytesPerScale * paddedSplatCount);
             const colorBuffer = new ArrayBuffer(bytesPerColor * paddedSplatCount);
 
             const blockHalfSize = sectionBlockSize / 2.0;

@@ -1,5 +1,21 @@
 import * as THREE from 'three';
-import { SplatTreeNode } from './SplatTreeNode.js';
+
+export class SplatTreeNode {
+
+    static idGen = 0;
+
+    constructor(min, max, depth, id) {
+        this.min = new THREE.Vector3().copy(min);
+        this.max = new THREE.Vector3().copy(max);
+        this.boundingBox = new THREE.Box3(this.min, this.max);
+        this.center = new THREE.Vector3().copy(this.max).sub(this.min).multiplyScalar(0.5).add(this.min);
+        this.depth = depth;
+        this.children = [];
+        this.data = null;
+        this.id = id || SplatTreeNode.idGen++;
+    }
+
+}
 
 class SplatSubTree {
 
@@ -33,7 +49,12 @@ class SplatSubTree {
         convertedSubTree.sceneMin = new THREE.Vector3().fromArray(workerSubTree.sceneMin);
         convertedSubTree.sceneMax = new THREE.Vector3().fromArray(workerSubTree.sceneMax);
         convertedSubTree.addedIndexes = workerSubTree.addedIndexes;
-        convertedSubTree.nodesWithIndexes = workerSubTree.nodesWithIndexes
+
+        convertedSubTree.nodesWithIndexes = [];
+        for (let workerNodeWithIndexes of workerSubTree.nodesWithIndexes) {
+            convertedSubTree.nodesWithIndexes.push(SplatSubTree.convertWorkerSubTreeNode(workerNodeWithIndexes));
+        }
+
         convertedSubTree.splatMesh = splatMesh;
         convertedSubTree.rootNode = SplatSubTree.convertWorkerSubTreeNode(workerSubTree.rootNode);
         return convertedSubTree;
@@ -306,6 +327,8 @@ export class SplatTree {
                         const convertedSubTree = SplatSubTree.convertWorkerSubTree(workerSubTree, splatMesh);
                         this.subTrees.push(convertedSubTree);
                     }
+                    splatTreeWorker.terminate();
+                    splatTreeWorker = null;
                     resolve();
                 }
             };
