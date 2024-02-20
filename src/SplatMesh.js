@@ -553,7 +553,7 @@ export class SplatMesh extends THREE.Mesh {
             this.disposeSplatTree();
             SplatMesh.buildSplatTree(this, sceneOptions.map(options => options.splatAlphaRemovalThreshold || 1))
             .then((splatTree) => {
-           //     this.splatTree = splatTree;
+                this.splatTree = splatTree;
             });
         }
     }

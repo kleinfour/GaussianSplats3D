@@ -43,6 +43,8 @@ export class Raycaster {
         return function(splatMesh, outHits = []) {
             const splatTree = splatMesh.getSplatTree();
 
+            if (!splatTree) return;
+
             for (let s = 0; s < splatTree.subTrees.length; s++) {
                 const subTree = splatTree.subTrees[s];
 

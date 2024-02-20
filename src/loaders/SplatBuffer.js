@@ -91,13 +91,17 @@ export class SplatBuffer {
         const tempPosition = new THREE.Vector3();
 
         return function(index, outScale, outRotation, transform) {
-            const scaleBase = index * SplatBuffer.ScaleComponentCount;
-            outScale.set(this.fbf(this.scaleArray[scaleBase]),
-                         this.fbf(this.scaleArray[scaleBase + 1]),
-                         this.fbf(this.scaleArray[scaleBase + 2]));
-            const rotationBase = index * SplatBuffer.RotationComponentCount;
-            outRotation.set(this.fbf(this.rotationArray[rotationBase + 1]), this.fbf(this.rotationArray[rotationBase + 2]),
-                            this.fbf(this.rotationArray[rotationBase + 3]), this.fbf(this.rotationArray[rotationBase]));
+            const sectionIndex = this.globalSplatIndexToSectionMap[index];
+            const section = this.sections[sectionIndex];
+            const localSplatIndex = index - section.splatCountOffset;
+
+            const scaleBase = localSplatIndex * SplatBuffer.ScaleComponentCount;
+            outScale.set(this.fbf(section.scaleArray[scaleBase]),
+                         this.fbf(section.scaleArray[scaleBase + 1]),
+                         this.fbf(section.scaleArray[scaleBase + 2]));
+            const rotationBase = localSplatIndex * SplatBuffer.RotationComponentCount;
+            outRotation.set(this.fbf(section.rotationArray[rotationBase + 1]), this.fbf(section.rotationArray[rotationBase + 2]),
+                            this.fbf(section.rotationArray[rotationBase + 3]), this.fbf(section.rotationArray[rotationBase]));
             if (transform) {
                 scaleMatrix.makeScale(outScale.x, outScale.y, outScale.z);
                 rotationMatrix.makeRotationFromQuaternion(outRotation);

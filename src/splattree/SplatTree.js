@@ -15,6 +15,29 @@ class SplatSubTree {
         this.splatMesh = null;
     }
 
+    static convertWorkerSubTreeNode(workerSubTreeNode) {
+        const minVector = new THREE.Vector3().fromArray(workerSubTreeNode.min);
+        const maxVector = new THREE.Vector3().fromArray(workerSubTreeNode.max);
+        const convertedNode = new SplatTreeNode(minVector, maxVector, workerSubTreeNode.depth, workerSubTreeNode.id);
+        convertedNode.data = workerSubTreeNode.data;
+        if (workerSubTreeNode.children) {
+            for (let child of workerSubTreeNode.children) {
+                convertedNode.children.push(SplatSubTree.convertWorkerSubTreeNode(child));
+            }
+        }
+        return convertedNode;
+    }
+
+    static convertWorkerSubTree(workerSubTree, splatMesh) {
+        const convertedSubTree = new SplatSubTree(workerSubTree.maxDepth, workerSubTree.maxCentersPerNode);
+        convertedSubTree.sceneMin = new THREE.Vector3().fromArray(workerSubTree.sceneMin);
+        convertedSubTree.sceneMax = new THREE.Vector3().fromArray(workerSubTree.sceneMax);
+        convertedSubTree.addedIndexes = workerSubTree.addedIndexes;
+        convertedSubTree.nodesWithIndexes = workerSubTree.nodesWithIndexes
+        convertedSubTree.splatMesh = splatMesh;
+        convertedSubTree.rootNode = SplatSubTree.convertWorkerSubTreeNode(workerSubTree.rootNode);
+        return convertedSubTree;
+    }
 }
 
 let splatTreeWorker;
@@ -188,7 +211,9 @@ function createSplatTreeWorker(self) {
             subTrees.push(subTree);
             processSplatTreeNode(subTree, subTree.rootNode, indexToCenter);
         }
-        console.log(subTrees)
+        self.postMessage({
+            'subTrees': subTrees
+        })
     }
 
     self.onmessage = (e) => {
@@ -275,9 +300,16 @@ export class SplatTree {
                 allCenters.push(sceneCenters);
             }
 
+            splatTreeWorker.onmessage = (e) => {
+                 if (e.data.subTrees) {
+                    for (let workerSubTree of e.data.subTrees) {
+                        const convertedSubTree = SplatSubTree.convertWorkerSubTree(workerSubTree, splatMesh);
+                        this.subTrees.push(convertedSubTree);
+                    }
+                    resolve();
+                }
+            };
             workerProcessCenters(allCenters, this.maxDepth, this.maxCentersPerNode);
-
-            resolve();
         });
 
     };
