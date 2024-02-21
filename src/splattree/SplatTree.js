@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { delayedExecute } from '../Util.js';
 
-export class SplatTreeNode {
+class SplatTreeNode {
 
     static idGen = 0;
 
@@ -27,7 +27,6 @@ class SplatSubTree {
         this.sceneMin = new THREE.Vector3();
         this.sceneMax = new THREE.Vector3();
         this.rootNode = null;
-        this.addedIndexes = {};
         this.nodesWithIndexes = [];
         this.splatMesh = null;
     }
@@ -56,7 +55,6 @@ class SplatSubTree {
         const convertedSubTree = new SplatSubTree(workerSubTree.maxDepth, workerSubTree.maxCentersPerNode);
         convertedSubTree.sceneMin = new THREE.Vector3().fromArray(workerSubTree.sceneMin);
         convertedSubTree.sceneMax = new THREE.Vector3().fromArray(workerSubTree.sceneMax);
-        convertedSubTree.addedIndexes = workerSubTree.addedIndexes;
 
         convertedSubTree.nodesWithIndexes = [];
         for (let workerNodeWithIndexes of workerSubTree.nodesWithIndexes) {

@@ -471,7 +471,7 @@ export class Viewer {
         if (format === undefined || format === null) {
             format = sceneFormatFromPath(path);
         }
-        const streamAndBuildSections = Viewer.isStreamable(format);
+        const streamAndBuildSections = Viewer.isStreamable(format) && false;
 
         let showLoadingSpinner = options.showLoadingSpinner;
         if (showLoadingSpinner !== false) showLoadingSpinner = true;
@@ -482,8 +482,12 @@ export class Viewer {
                 if (percent == 100) {
                     this.loadingSpinner.setMessage(`Download complete!`);
                 } else {
-                    const suffix = percentLabel ? `: ${percentLabel}` : `...`;
-                    this.loadingSpinner.setMessage(`Downloading${suffix}`);
+                    if (streamAndBuildSections) {
+                        this.loadingSpinner.setMessage(`Downloading splats...`);
+                    } else {
+                        const suffix = percentLabel ? `: ${percentLabel}` : `...`;
+                        this.loadingSpinner.setMessage(`Downloading${suffix}`);
+                    }
                 }
             }
             if (options.onProgress) options.onProgress(percent, percentLabel, 'downloading');
@@ -754,18 +758,8 @@ export class Viewer {
                 }
             }
         };
-        const onSplatTreeConstruction = (finished) => {
-            if (showLoadingSpinnerForSplatTreeBuild) {
-                if (!finished) {
-                    this.loadingSpinner.show();
-                    this.loadingSpinner.setMessage(`Optimizing splats...`);
-                } else {
-                    this.loadingSpinner.hide();
-                }
-            }
-        };
         this.splatMesh.build(allSplatBuffers, allSplatBufferOptions, true, buildSplatTree,
-                             onSplatTreeIndexesUpload, onSplatTreeConstruction);
+                             onSplatTreeIndexesUpload);
         this.splatMesh.frustumCulled = false;
     }
 
