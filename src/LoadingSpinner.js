@@ -1,6 +1,7 @@
 export class LoadingSpinner {
 
     constructor(message, container) {
+
         this.message = message || 'Loading...';
         this.container = container || document.body;
 
@@ -45,6 +46,11 @@ export class LoadingSpinner {
             }
 
             .container {
+                background-color: rgba(128, 128, 128, 0.75);
+                border: #666666 1px solid;
+                border-radius: 5px;
+                padding-top: 20px;
+                padding-bottom: 10px;
                 margin: 0;
                 position: absolute;
                 top: 50%;

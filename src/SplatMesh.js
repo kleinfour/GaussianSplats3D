@@ -438,7 +438,7 @@ export class SplatMesh extends THREE.Mesh {
      * @param {Array<number>} minAlphas Array of minimum splat slphas for each scene
      * @return {SplatTree}
      */
-    static buildSplatTree = function(splatMesh, minAlphas = []) {
+    static buildSplatTree = function(splatMesh, minAlphas = [], onSplatTreeIndexesUpload, onSplatTreeConstruction) {
         return new Promise((resolve) => {
             // TODO: expose SplatTree constructor parameters (maximumDepth and maxCentersPerNode) so that they can
             // be configured on a per-scene basis
@@ -450,7 +450,7 @@ export class SplatMesh extends THREE.Mesh {
                 const sceneIndex = splatMesh.getSceneIndexForSplat(splatIndex);
                 const minAlpha = minAlphas[sceneIndex] || 1;
                 return splatColor.w >= minAlpha;
-            })
+            }, onSplatTreeIndexesUpload, onSplatTreeConstruction)
             .then(() => {
                 console.timeEnd('SplatTree build');
 
@@ -496,7 +496,8 @@ export class SplatMesh extends THREE.Mesh {
      * @param {Boolean} keepSceneTransforms For a scene that already exists and is being overwritten, this flag
      *                                      says to keep the transform from the existing scene.
      */
-    build(splatBuffers, sceneOptions, keepSceneTransforms = true, buildSplatTrees = false) {
+    build(splatBuffers, sceneOptions, keepSceneTransforms = true, buildSplatTrees = false,
+          onSplatTreeIndexesUpload, onSplatTreeConstruction) {
 
         const maxSplatCount = SplatMesh.getTotalMaxSplatCountForSplatBuffers(splatBuffers);
 
@@ -551,7 +552,8 @@ export class SplatMesh extends THREE.Mesh {
 
         if (buildSplatTrees) {
             this.disposeSplatTree();
-            SplatMesh.buildSplatTree(this, sceneOptions.map(options => options.splatAlphaRemovalThreshold || 1))
+            SplatMesh.buildSplatTree(this, sceneOptions.map(options => options.splatAlphaRemovalThreshold || 1),
+                                     onSplatTreeIndexesUpload, onSplatTreeConstruction)
             .then((splatTree) => {
                 this.splatTree = splatTree;
             });

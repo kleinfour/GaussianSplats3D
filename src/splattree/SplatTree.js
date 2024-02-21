@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { delayedExecute } from '../Util.js';
 
 export class SplatTreeNode {
 
@@ -245,9 +246,7 @@ function createSplatTreeWorker(self) {
     }
 
     self.onmessage = (e) => {
-        if (e.data.init) {
-
-        } else if (e.data.process) {
+        if (e.data.process) {
             createSplatTree(e.data.process.centers, e.data.process.maxDepth, e.data.process.maxCentersPerNode);
         }
     };
@@ -272,11 +271,6 @@ function checkAndCreateWorker() {
                 }),
             ),
         );
-    
-    
-        splatTreeWorker.postMessage({
-            'init': {}
-        });
     }
 } 
 
@@ -292,7 +286,7 @@ export class SplatTree {
         this.splatMesh = null;
     }
 
-    processSplatMesh = function(splatMesh, filterFunc = () => true) {
+    processSplatMesh = function(splatMesh, filterFunc = () => true, onIndexesUpload, onSplatTreeConstruction) {
         checkAndCreateWorker();
 
         this.splatMesh = splatMesh;
@@ -312,34 +306,56 @@ export class SplatTree {
         };
 
         return new Promise((resolve) => {
-            const allCenters = [];
-            if (splatMesh.dynamicMode) {
-                let splatOffset = 0;
-                for (let s = 0; s < splatMesh.scenes.length; s++) {
-                    const scene = splatMesh.getScene(s);
-                    const splatCount = scene.splatBuffer.getSplatCount();
-                    const sceneCenters = addCentersForScene(splatOffset, splatCount);
-                    allCenters.push(sceneCenters);
-                    splatOffset += splatCount;
-                }
-            } else {
-                const scene = splatMesh.getScene(0);
-                const sceneCenters = addCentersForScene(0, scene.splatBuffer.getSplatCount());
-                allCenters.push(sceneCenters);
-            }
+            if (onIndexesUpload) onIndexesUpload(false);
 
-            splatTreeWorker.onmessage = (e) => {
-                 if (e.data.subTrees) {
-                    for (let workerSubTree of e.data.subTrees) {
-                        const convertedSubTree = SplatSubTree.convertWorkerSubTree(workerSubTree, splatMesh);
-                        this.subTrees.push(convertedSubTree);
+            delayedExecute(() => {
+                const allCenters = [];
+                if (splatMesh.dynamicMode) {
+                    let splatOffset = 0;
+                    for (let s = 0; s < splatMesh.scenes.length; s++) {
+                        const scene = splatMesh.getScene(s);
+                        const splatCount = scene.splatBuffer.getSplatCount();
+                        const sceneCenters = addCentersForScene(splatOffset, splatCount);
+                        allCenters.push(sceneCenters);
+                        splatOffset += splatCount;
                     }
-                    splatTreeWorker.terminate();
-                    splatTreeWorker = null;
-                    resolve();
+                } else {
+                    const scene = splatMesh.getScene(0);
+                    const sceneCenters = addCentersForScene(0, scene.splatBuffer.getSplatCount());
+                    allCenters.push(sceneCenters);
                 }
-            };
-            workerProcessCenters(allCenters, this.maxDepth, this.maxCentersPerNode);
+    
+                splatTreeWorker.onmessage = (e) => {
+                     if (e.data.subTrees) {
+    
+                        if (onSplatTreeConstruction) onSplatTreeConstruction(false);
+
+                        delayedExecute(() => {
+    
+                            for (let workerSubTree of e.data.subTrees) {
+                                const convertedSubTree = SplatSubTree.convertWorkerSubTree(workerSubTree, splatMesh);
+                                this.subTrees.push(convertedSubTree);
+                            }
+                            splatTreeWorker.terminate();
+                            splatTreeWorker = null;
+        
+                            if (onSplatTreeConstruction) onSplatTreeConstruction(true);
+
+                            delayedExecute(() => {
+                                resolve();
+                            });
+
+                        });
+                    }
+                };
+    
+                delayedExecute(() => {
+                    if (onIndexesUpload) onIndexesUpload(true);
+                    workerProcessCenters(allCenters, this.maxDepth, this.maxCentersPerNode);
+                });
+
+            });
+            
         });
 
     };
