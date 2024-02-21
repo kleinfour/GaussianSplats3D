@@ -654,7 +654,7 @@ export class Viewer {
         let loadCount = 0;
 
         return function(splatBuffers, splatBufferOptions = [], showLoadingSpinner = true,
-                        buildSplatTrees, showLoadingSpinnerForSplatTreeBuild = true) {
+                        buildSplatTree = true, showLoadingSpinnerForSplatTreeBuild = true) {
             this.splatRenderingInitialized = false;
             loadCount++;
 
@@ -683,7 +683,7 @@ export class Viewer {
                         this.loadingSpinner.setMessage(`Processing splats...`);
                     }
                     delayedExecute(() => {
-                        this.addSplatBuffersToMesh(splatBuffers, splatBufferOptions, buildSplatTrees, showLoadingSpinnerForSplatTreeBuild);
+                        this.addSplatBuffersToMesh(splatBuffers, splatBufferOptions, buildSplatTree, showLoadingSpinnerForSplatTreeBuild);
                         // TODO(StreamBuild): Clean up check for streaming construction here
                         const maxSplatCount = this.splatMesh.getMaxSplatCount();
                         if (this.sortWorker && this.sortWorker.maxSplatCount !== maxSplatCount) {
@@ -734,8 +734,11 @@ export class Viewer {
      *
      *         scale (Array<number>):      Scene's scale, defaults to [1, 1, 1]
      * }
+     * @param {boolean} buildSplatTree Whetehr or not to build a splat tree in addition to the splat mesh.
+     * @param {boolean} showLoadingSpinnerForSplatTreeBuild Whetehr or not to show the loading spinner during
+     *                                                      construction of the splat tree.
      */
-    addSplatBuffersToMesh(splatBuffers, splatBufferOptions, buildSplatTrees = false, showLoadingSpinnerForSplatTreeBuild = false) {
+    addSplatBuffersToMesh(splatBuffers, splatBufferOptions, buildSplatTree = true, showLoadingSpinnerForSplatTreeBuild = false) {
         const allSplatBuffers = this.splatMesh.splatBuffers || [];
         const allSplatBufferOptions = this.splatMesh.splatBufferOptions || [];
         allSplatBuffers.push(...splatBuffers);
@@ -761,7 +764,7 @@ export class Viewer {
                 }
             }
         };
-        this.splatMesh.build(allSplatBuffers, allSplatBufferOptions, true, buildSplatTrees,
+        this.splatMesh.build(allSplatBuffers, allSplatBufferOptions, true, buildSplatTree,
                              onSplatTreeIndexesUpload, onSplatTreeConstruction);
         this.splatMesh.frustumCulled = false;
     }

@@ -135,4 +135,4 @@ export const disposeAllMeshes = (object3D) => {
 
 export const delayedExecute = (func) => {
     window.setTimeout(func, 1);
-}
+};

@@ -204,7 +204,7 @@ export class SplatBuffer {
                 outCovariance[outOffset + 4] = transformedCovariance.elements[7];
                 outCovariance[outOffset + 5] = transformedCovariance.elements[8];
             }
-                
+
         };
 
     }();
@@ -334,7 +334,8 @@ export class SplatBuffer {
             centerBufferSizeBytes += centerBufferSizeBytes % 4;
             let scaleBufferSizeBytes = splatCount * bytesPerScale;
             scaleBufferSizeBytes += scaleBufferSizeBytes % 4;
-            const splatDataStorageSizeBytes = centerBufferSizeBytes + scaleBufferSizeBytes + (bytesPerRotation + bytesPerColor) * splatCount;
+            const splatDataStorageSizeBytes = centerBufferSizeBytes + scaleBufferSizeBytes +
+                                              (bytesPerRotation + bytesPerColor) * splatCount;
             const storageSizeBytes = splatDataStorageSizeBytes + bucketsStorageSizeBytes;
             const sectionHeader = {
                 splatCountOffset: splatCountOffset,
@@ -529,7 +530,9 @@ export class SplatBuffer {
                                              validSplats['rot_3'][row], validSplats['rot_0'][row]);
                             tempRotation.normalize();
                             rot.set([thf(tempRotation.w), thf(tempRotation.x), thf(tempRotation.y), thf(tempRotation.z)]);
-                            scale.set([thf(validSplats['scale_0'][row]), thf(validSplats['scale_1'][row]), thf(validSplats['scale_2'][row])]);
+                            scale.set([thf(validSplats['scale_0'][row]),
+                                       thf(validSplats['scale_1'][row]),
+                                       thf(validSplats['scale_2'][row])]);
                         } else {
                             rot.set([thf(1.), 0, 0, 0]);
                             scale.set([thf(0.01), thf(0.01), thf(0.01)]);
@@ -577,7 +580,8 @@ export class SplatBuffer {
 
             new Uint8Array(sectionBuffer, 0, centerBuffer.byteLength).set(new Uint8Array(centerBuffer));
             new Uint8Array(sectionBuffer, centerBuffer.byteLength, scaleBuffer.byteLength).set(new Uint8Array(scaleBuffer));
-            new Uint8Array(sectionBuffer, centerBuffer.byteLength + scaleBuffer.byteLength, rotationBuffer.byteLength).set(new Uint8Array(rotationBuffer));
+            new Uint8Array(sectionBuffer, centerBuffer.byteLength + scaleBuffer.byteLength,
+                           rotationBuffer.byteLength).set(new Uint8Array(rotationBuffer));
             new Uint8Array(sectionBuffer, centerBuffer.byteLength + scaleBuffer.byteLength + rotationBuffer.byteLength,
                            colorBuffer.byteLength).set(new Uint8Array(colorBuffer));
 

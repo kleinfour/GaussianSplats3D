@@ -39,7 +39,7 @@ class SplatSubTree {
         if (workerSubTreeNode.data.indexes) {
             convertedNode.data = {
                 'indexes': []
-            }
+            };
             for (let index of workerSubTreeNode.data.indexes) {
                 convertedNode.data.indexes.push(index);
             }
@@ -81,7 +81,7 @@ function createSplatTreeWorker(self) {
 
         containsPoint(point) {
             return point[0] >= this.min[0] && point[0] <= this.max[0] &&
-                   point[1] >= this.min[1] && point[1] <= this.max[1] && 
+                   point[1] >= this.min[1] && point[1] <= this.max[1] &&
                    point[2] >= this.min[2] && point[2] <= this.max[2];
         }
     }
@@ -99,7 +99,7 @@ function createSplatTreeWorker(self) {
             this.nodesWithIndexes = [];
             this.splatMesh = null;
         }
-    
+
     }
 
     class WorkerSplatTreeNode {
@@ -115,10 +115,10 @@ function createSplatTreeWorker(self) {
             this.data = null;
             this.id = id || WorkerSplatTreeNode.idGen++;
         }
-    
+
     }
 
-    processSplatTreeNode = function (tree, node, indexToCenter) {
+    processSplatTreeNode = function(tree, node, indexToCenter) {
         const splatCount = node.data.indexes.length;
 
         if (splatCount < tree.maxCentersPerNode || node.depth > tree.maxDepth) {
@@ -152,7 +152,7 @@ function createSplatTreeWorker(self) {
                            [nodeCenter[0] + halfDimensions[0], nodeCenter[1] + halfDimensions[1], nodeCenter[2]]),
             new WorkerBox3([nodeCenter[0], nodeCenter[1], nodeCenter[2]],
                            [nodeCenter[0] + halfDimensions[0], nodeCenter[1] + halfDimensions[1], nodeCenter[2] + halfDimensions[2]]),
-            new WorkerBox3([nodeCenter[0] - halfDimensions[0], nodeCenter[1], nodeCenter[2] ],
+            new WorkerBox3([nodeCenter[0] - halfDimensions[0], nodeCenter[1], nodeCenter[2]],
                            [nodeCenter[0], nodeCenter[1] + halfDimensions[1], nodeCenter[2] + halfDimensions[2]]),
 
             // bottom section, clockwise from lower-left (looking from above, +Y)
@@ -197,7 +197,7 @@ function createSplatTreeWorker(self) {
             processSplatTreeNode(tree, child, indexToCenter);
         }
         return;
-    }
+    };
 
     const buildSubTree = (sceneCenters, maxDepth, maxCentersPerNode) => {
 
@@ -214,7 +214,6 @@ function createSplatTreeWorker(self) {
             if (i === 0 || center[2] > sceneMax[2]) sceneMax[2] = center[2];
             indexes.push(center[3]);
         }
-        const sceneDimensions = [sceneMax[0] - sceneMin[0], sceneMax[1] - sceneMin[1], sceneMax[2] - sceneMin[2]];
         const subTree = new WorkerSplatSubTree(maxDepth, maxCentersPerNode);
         subTree.sceneMin = sceneMin;
         subTree.sceneMax = sceneMax;
@@ -242,7 +241,7 @@ function createSplatTreeWorker(self) {
         }
         self.postMessage({
             'subTrees': subTrees
-        })
+        });
     }
 
     self.onmessage = (e) => {
@@ -272,7 +271,7 @@ function checkAndCreateWorker() {
             ),
         );
     }
-} 
+}
 
 /**
  * SplatTree: Octree tailored to splat data from a SplatMesh instance
@@ -286,6 +285,17 @@ export class SplatTree {
         this.splatMesh = null;
     }
 
+    /**
+     * Construct this instance of SplatTree from an instance of SplatMesh.
+     *
+     * @param {SplatMesh} splatMesh The instance of SplatMesh from which to construct this splat tree.
+     * @param {function} filterFunc Optional function to filter out unwanted splats.
+     * @param {function} onIndexesUpload Function to be called when the upload of splat centers to the splat tree
+     *                            builder worker starts and finishes.
+     * @param {function} onSplatTreeConstruction Function to be called when the conversion of the local splat tree from
+     *                                    the format produced by the splat tree builder worker starts and ends.
+     * @return {undefined}
+     */
     processSplatMesh = function(splatMesh, filterFunc = () => true, onIndexesUpload, onSplatTreeConstruction) {
         checkAndCreateWorker();
 
@@ -310,7 +320,7 @@ export class SplatTree {
             if (onIndexesUpload) onIndexesUpload(false);
 
             delayedExecute(() => {
-                
+
                 const allCenters = [];
                 if (splatMesh.dynamicMode) {
                     let splatOffset = 0;
@@ -326,21 +336,21 @@ export class SplatTree {
                     const sceneCenters = addCentersForScene(0, scene.splatBuffer.getSplatCount());
                     allCenters.push(sceneCenters);
                 }
-    
+
                 splatTreeWorker.onmessage = (e) => {
                      if (e.data.subTrees) {
 
                         if (onSplatTreeConstruction) onSplatTreeConstruction(false);
 
                         delayedExecute(() => {
-    
+
                             for (let workerSubTree of e.data.subTrees) {
                                 const convertedSubTree = SplatSubTree.convertWorkerSubTree(workerSubTree, splatMesh);
                                 this.subTrees.push(convertedSubTree);
                             }
                             splatTreeWorker.terminate();
                             splatTreeWorker = null;
-        
+
                             if (onSplatTreeConstruction) onSplatTreeConstruction(true);
 
                             delayedExecute(() => {
@@ -350,14 +360,14 @@ export class SplatTree {
                         });
                     }
                 };
-    
+
                 delayedExecute(() => {
                     if (onIndexesUpload) onIndexesUpload(true);
                     workerProcessCenters(allCenters, this.maxDepth, this.maxCentersPerNode);
                 });
 
             });
-            
+
         });
 
     };

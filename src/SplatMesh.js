@@ -436,6 +436,10 @@ export class SplatMesh extends THREE.Mesh {
      * Build an instance of SplatTree (a specialized octree) for the given splat mesh.
      * @param {SplatMesh} splatMesh SplatMesh instance for which the splat tree will be built
      * @param {Array<number>} minAlphas Array of minimum splat slphas for each scene
+     * @param {function} onSplatTreeIndexesUpload Function to be called when the upload of splat centers to the splat tree
+     *                                            builder worker starts and finishes.
+     * @param {function} onSplatTreeConstruction Function to be called when the conversion of the local splat tree from
+     *                                           the format produced by the splat tree builder worker starts and ends.
      * @return {SplatTree}
      */
     static buildSplatTree = function(splatMesh, minAlphas = [], onSplatTreeIndexesUpload, onSplatTreeConstruction) {
@@ -493,10 +497,15 @@ export class SplatMesh extends THREE.Mesh {
      *         scale (Array<number>):      Scene's scale, defaults to [1, 1, 1]
      *
      * }
-     * @param {Boolean} keepSceneTransforms For a scene that already exists and is being overwritten, this flag
+     * @param {boolean} keepSceneTransforms For a scene that already exists and is being overwritten, this flag
      *                                      says to keep the transform from the existing scene.
+     * @param {boolean} buildSplatTree Whether or not to build splat tree.
+     * @param {function} onSplatTreeIndexesUpload Function to be called when the upload of splat centers to the splat tree
+     *                                            builder worker starts and finishes.
+     * @param {function} onSplatTreeConstruction Function to be called when the conversion of the local splat tree from
+     *                                           the format produced by the splat tree builder worker starts and ends.
      */
-    build(splatBuffers, sceneOptions, keepSceneTransforms = true, buildSplatTrees = false,
+    build(splatBuffers, sceneOptions, keepSceneTransforms = true, buildSplatTree = false,
           onSplatTreeIndexesUpload, onSplatTreeConstruction) {
 
         const maxSplatCount = SplatMesh.getTotalMaxSplatCountForSplatBuffers(splatBuffers);
@@ -550,7 +559,7 @@ export class SplatMesh extends THREE.Mesh {
         this.lastBuildMaxSplatCount = this.getMaxSplatCount();
         this.lastBuildSceneCount = this.scenes.length;
 
-        if (buildSplatTrees) {
+        if (buildSplatTree) {
             this.disposeSplatTree();
             SplatMesh.buildSplatTree(this, sceneOptions.map(options => options.splatAlphaRemovalThreshold || 1),
                                      onSplatTreeIndexesUpload, onSplatTreeConstruction)
