@@ -347,8 +347,7 @@ export class SplatTree {
                         splatOffset += splatCount;
                     }
                 } else {
-                    const scene = splatMesh.getScene(0);
-                    const sceneCenters = addCentersForScene(0, scene.splatBuffer.getSplatCount());
+                    const sceneCenters = addCentersForScene(0, splatMesh.getSplatCount());
                     allCenters.push(sceneCenters);
                 }
 
