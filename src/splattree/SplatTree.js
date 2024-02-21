@@ -116,7 +116,7 @@ function createSplatTreeWorker(self) {
 
     }
 
-    processSplatTreeNode = function(tree, node, indexToCenter) {
+    processSplatTreeNode = function(tree, node, indexToCenter, sceneCenters) {
         const splatCount = node.data.indexes.length;
 
         if (splatCount < tree.maxCentersPerNode || node.depth > tree.maxDepth) {
@@ -171,9 +171,13 @@ function createSplatTreeWorker(self) {
             baseIndexes[i] = [];
         }
 
+        const center = [0, 0, 0];
         for (let i = 0; i < splatCount; i++) {
             const splatGlobalIndex = node.data.indexes[i];
-            const center = indexToCenter[splatGlobalIndex];
+            const centerBase = indexToCenter[splatGlobalIndex];
+            center[0] = sceneCenters[centerBase];
+            center[1] = sceneCenters[centerBase + 1];
+            center[2] = sceneCenters[centerBase + 2];
             for (let j = 0; j < childrenBounds.length; j++) {
                 if (childrenBounds[j].containsPoint(center)) {
                     splatCounts[j]++;
@@ -192,7 +196,7 @@ function createSplatTreeWorker(self) {
 
         node.data = {};
         for (let child of node.children) {
-            processSplatTreeNode(tree, child, indexToCenter);
+            processSplatTreeNode(tree, child, indexToCenter, sceneCenters);
         }
         return;
     };
@@ -202,15 +206,20 @@ function createSplatTreeWorker(self) {
         const sceneMin = [0, 0, 0];
         const sceneMax = [0, 0, 0];
         const indexes = [];
-        for ( let i = 0; i < sceneCenters.length; i ++) {
-            const center = sceneCenters[i];
-            if (i === 0 || center[0] < sceneMin[0]) sceneMin[0] = center[0];
-            if (i === 0 || center[0] > sceneMax[0]) sceneMax[0] = center[0];
-            if (i === 0 || center[1] < sceneMin[1]) sceneMin[1] = center[1];
-            if (i === 0 || center[1] > sceneMax[1]) sceneMax[1] = center[1];
-            if (i === 0 || center[2] < sceneMin[2]) sceneMin[2] = center[2];
-            if (i === 0 || center[2] > sceneMax[2]) sceneMax[2] = center[2];
-            indexes.push(center[3]);
+        const centerCount = Math.floor(sceneCenters.length / 4);
+        for ( let i = 0; i < centerCount; i ++) {
+            const base = i * 4;
+            const x = sceneCenters[base];
+            const y = sceneCenters[base + 1];
+            const z = sceneCenters[base + 2];
+            const index = Math.round(sceneCenters[base + 3]);
+            if (i === 0 || x < sceneMin[0]) sceneMin[0] = x;
+            if (i === 0 || x > sceneMax[0]) sceneMax[0] = x;
+            if (i === 0 || y < sceneMin[1]) sceneMin[1] = y;
+            if (i === 0 || y > sceneMax[1]) sceneMax[1] = y;
+            if (i === 0 || z < sceneMin[2]) sceneMin[2] = z;
+            if (i === 0 || z > sceneMax[2]) sceneMax[2] = z;
+            indexes.push(index);
         }
         const subTree = new WorkerSplatSubTree(maxDepth, maxCentersPerNode);
         subTree.sceneMin = sceneMin;
@@ -226,16 +235,18 @@ function createSplatTreeWorker(self) {
     function createSplatTree(allCenters, maxDepth, maxCentersPerNode) {
         const indexToCenter = [];
         for (let sceneCenters of allCenters) {
-            for ( let i = 0; i < sceneCenters.length; i ++) {
-                const center = sceneCenters[i];
-                indexToCenter[center[3]] = center;
+            const centerCount = Math.floor(sceneCenters.length / 4);
+            for ( let i = 0; i < centerCount; i ++) {
+                const base = i * 4;
+                const index = Math.round(sceneCenters[base + 3]);
+                indexToCenter[index] = base;
             }
         }
         const subTrees = [];
         for (let sceneCenters of allCenters) {
             const subTree = buildSubTree(sceneCenters, maxDepth, maxCentersPerNode);
             subTrees.push(subTree);
-            processSplatTreeNode(subTree, subTree.rootNode, indexToCenter);
+            processSplatTreeNode(subTree, subTree.rootNode, indexToCenter, sceneCenters);
         }
         self.postMessage({
             'subTrees': subTrees
@@ -249,14 +260,14 @@ function createSplatTreeWorker(self) {
     };
 }
 
-function workerProcessCenters(centers, maxDepth, maxCentersPerNode) {
+function workerProcessCenters(centers, transferBuffers, maxDepth, maxCentersPerNode) {
     splatTreeWorker.postMessage({
         'process': {
             'centers': centers,
             'maxDepth': maxDepth,
             'maxCentersPerNode': maxCentersPerNode
         }
-    });
+    }, transferBuffers);
 }
 
 function checkAndCreateWorker() {
@@ -302,12 +313,18 @@ export class SplatTree {
         const center = new THREE.Vector3();
 
         const addCentersForScene = (splatOffset, splatCount) => {
-            const sceneCenters = [];
+            const sceneCenters = new Float32Array(splatCount * 4);
+            let addedCount = 0;
             for (let i = 0; i < splatCount; i++) {
                 const globalSplatIndex = i + splatOffset;
                 if (filterFunc(globalSplatIndex)) {
                     splatMesh.getSplatCenter(globalSplatIndex, center);
-                    sceneCenters.push([center.x, center.y, center.z, globalSplatIndex]);
+                    const addBase = addedCount * 4;
+                    sceneCenters[addBase] = center.x;
+                    sceneCenters[addBase + 1] = center.y;
+                    sceneCenters[addBase + 2] = center.z;
+                    sceneCenters[addBase + 3] = globalSplatIndex;
+                    addedCount++;
                 }
             }
             return sceneCenters;
@@ -361,7 +378,8 @@ export class SplatTree {
 
                 delayedExecute(() => {
                     if (onIndexesUpload) onIndexesUpload(true);
-                    workerProcessCenters(allCenters, this.maxDepth, this.maxCentersPerNode);
+                    const transferBuffers = allCenters.map((array) => array.buffer);
+                    workerProcessCenters(allCenters, transferBuffers, this.maxDepth, this.maxCentersPerNode);
                 });
 
             });
