@@ -126,6 +126,7 @@ export class Viewer {
         this.sortWorkerSortedIndexes = null;
         this.sortWorkerPrecomputedDistances = null;
         this.sortWorkerTransforms = null;
+        this.afterFirstSort = [];
 
         this.selfDrivenModeRunning = false;
         this.splatRenderingInitialized = false;
@@ -471,22 +472,23 @@ export class Viewer {
         if (format === undefined || format === null) {
             format = sceneFormatFromPath(path);
         }
-        const streamAndBuildSections = Viewer.isStreamable(format) && false;
+        const streamAndBuildSections = Viewer.isStreamable(format);
 
         let showLoadingSpinner = options.showLoadingSpinner;
         if (showLoadingSpinner !== false) showLoadingSpinner = true;
 
-        if (showLoadingSpinner) this.loadingSpinner.show();
+        let downloadingTaskId = null;
+        if (showLoadingSpinner) downloadingTaskId = this.loadingSpinner.addTask('Downloading...');
         const downloadProgress = (percent, percentLabel) => {
             if (showLoadingSpinner) {
                 if (percent == 100) {
-                    this.loadingSpinner.setMessage(`Download complete!`);
+                    this.loadingSpinner.setMessageForTask(downloadingTaskId, 'Download complete!');
                 } else {
                     if (streamAndBuildSections) {
-                        this.loadingSpinner.setMessage(`Downloading splats...`);
+                        this.loadingSpinner.setMessageForTask(downloadingTaskId, 'Downloading splats...');
                     } else {
                         const suffix = percentLabel ? `: ${percentLabel}` : `...`;
-                        this.loadingSpinner.setMessage(`Downloading${suffix}`);
+                        this.loadingSpinner.setMessageForTask(downloadingTaskId, `Downloading${suffix}`);
                     }
                 }
             }
@@ -505,8 +507,14 @@ export class Viewer {
             this.addSplatBuffers([splatBuffer], [splatBufferOptions], sectionBuildCount === 0,
                                   finalBuild, showLoadingSpinner).then(() => {
                 if (options.onProgress) options.onProgress(100, '100%', 'processing');
-                if (sectionBuildCount === 0 && streamAndBuildSections) {
-                    this.loadingSpinner.hide();
+                if (downloadingTaskId !== null) {
+                    if (sectionBuildCount === 0 && streamAndBuildSections || finalBuild && !streamAndBuildSections) {
+                        const taskToClearAfterSort = downloadingTaskId;
+                        this.afterFirstSort.push(() => {
+                            this.loadingSpinner.removeTask(taskToClearAfterSort);
+                        });
+                        downloadingTaskId = null;
+                    }
                 }
                 resolve();
             });
@@ -532,7 +540,7 @@ export class Viewer {
                     onSectionBuild(splatBuffer, resolve, 0, true);
                 })
                 .catch(() => {
-                    if (showLoadingSpinner) this.loadingSpinner.hide();
+                    if (showLoadingSpinner) this.loadingSpinner.removeTask(downloadingTaskId);
                     reject(new Error(`Viewer::addSplatScene -> Could not load file ${path}`));
                 });
             }, loadPromise.abortHandler);
@@ -656,6 +664,7 @@ export class Viewer {
 
         let loadPromise;
         let loadCount = 0;
+        let splatProcessingTaskId = null;
 
         return function(splatBuffers, splatBufferOptions = [], showLoadingSpinner = true,
                         buildSplatTree = true, showLoadingSpinnerForSplatTreeBuild = true) {
@@ -665,7 +674,10 @@ export class Viewer {
             const finish = (resolver) => {
                 loadCount--;
                 if (loadCount === 0) {
-                    if (showLoadingSpinner) this.loadingSpinner.hide();
+                    if (splatProcessingTaskId !== null) {
+                        this.loadingSpinner.removeTask(splatProcessingTaskId);
+                        splatProcessingTaskId = null;
+                    }
                     this.splatRenderingInitialized = true;
                 }
                 if (!this.gpuAcceleratedSort) {
@@ -683,8 +695,7 @@ export class Viewer {
             const performLoad = () => {
                 return new Promise((resolve) => {
                     if (showLoadingSpinner) {
-                        this.loadingSpinner.show();
-                        this.loadingSpinner.setMessage(`Processing splats...`);
+                        splatProcessingTaskId = this.loadingSpinner.addTask('Processing splats...');
                     }
                     delayedExecute(() => {
                         this.addSplatBuffersToMesh(splatBuffers, splatBufferOptions, buildSplatTree, showLoadingSpinnerForSplatTreeBuild);
@@ -748,13 +759,13 @@ export class Viewer {
         allSplatBuffers.push(...splatBuffers);
         allSplatBufferOptions.push(...splatBufferOptions);
         if (this.renderer) this.splatMesh.setRenderer(this.renderer);
+        let splatOptimizingTaskId;
         const onSplatTreeIndexesUpload = (finished) => {
             if (showLoadingSpinnerForSplatTreeBuild) {
                 if (!finished) {
-                    this.loadingSpinner.show();
-                    this.loadingSpinner.setMessage(`Optimizing splats...`);
+                    splatOptimizingTaskId = this.loadingSpinner.addTask('Optimizing splats...');
                 } else {
-                    this.loadingSpinner.hide();
+                    this.loadingSpinner.removeTask(splatOptimizingTaskId);
                 }
             }
         };
@@ -775,6 +786,7 @@ export class Viewer {
             const maxSplatCount = splatMesh.getMaxSplatCount();
             const sortWorker = createSortWorker(maxSplatCount, this.sharedMemoryForWorkers,
                                                 this.integerBasedSort, this.splatMesh.dynamicMode);
+            let sortCount = 0;
             sortWorker.onmessage = (e) => {
                 if (e.data.sortDone) {
                     this.sortRunning = false;
@@ -788,6 +800,12 @@ export class Viewer {
                     this.sortPromiseResolver();
                     this.sortPromise = null;
                     this.sortPromiseResolver = null;
+                    if (sortCount === 0) {
+                        this.afterFirstSort.forEach((func) => {
+                            func();
+                        });
+                    }
+                    sortCount++;
                 } else if (e.data.sortCanceled) {
                     this.sortRunning = false;
                 } else if (e.data.sortSetupPhase1Complete) {
