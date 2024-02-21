@@ -112,7 +112,7 @@ http
         console.log("HTTP(200) Request for " + filePath);
         response.writeHead(200, { "Content-Type": contentType });
 
-        const chunkSize = Math.ceil(1024 * 1024 * 0.5);
+        const chunkSize = Math.ceil(1024 * 1024);
         const chunkCount = Math.ceil(content.length / chunkSize);
         for (let i = 0; i < chunkCount; i++) {
           const start = i * chunkSize;

@@ -306,9 +306,11 @@ export class SplatTree {
         };
 
         return new Promise((resolve) => {
+
             if (onIndexesUpload) onIndexesUpload(false);
 
             delayedExecute(() => {
+                
                 const allCenters = [];
                 if (splatMesh.dynamicMode) {
                     let splatOffset = 0;
@@ -327,7 +329,7 @@ export class SplatTree {
     
                 splatTreeWorker.onmessage = (e) => {
                      if (e.data.subTrees) {
-    
+
                         if (onSplatTreeConstruction) onSplatTreeConstruction(false);
 
                         delayedExecute(() => {

@@ -475,11 +475,10 @@ export class Viewer {
 
         let showLoadingSpinner = options.showLoadingSpinner;
         if (showLoadingSpinner !== false) showLoadingSpinner = true;
-        let currentSectionBuildShowLoadingSpinner = showLoadingSpinner;
 
         if (showLoadingSpinner) this.loadingSpinner.show();
         const downloadProgress = (percent, percentLabel) => {
-            if (showLoadingSpinner && currentSectionBuildShowLoadingSpinner) {
+            if (showLoadingSpinner) {
                 if (percent == 100) {
                     this.loadingSpinner.setMessage(`Download complete!`);
                 } else {
@@ -498,12 +497,11 @@ export class Viewer {
         };
 
         const onSectionBuild = (splatBuffer, resolve, sectionBuildCount, finalBuild) => {
-            currentSectionBuildShowLoadingSpinner = false;
             if (options.onProgress) options.onProgress(0, '0%', 'processing');
             this.addSplatBuffers([splatBuffer], [splatBufferOptions], sectionBuildCount === 0,
                                   finalBuild, showLoadingSpinner).then(() => {
                 if (options.onProgress) options.onProgress(100, '100%', 'processing');
-                if (streamAndBuildSections) {
+                if (sectionBuildCount === 0 && streamAndBuildSections) {
                     this.loadingSpinner.hide();
                 }
                 resolve();
