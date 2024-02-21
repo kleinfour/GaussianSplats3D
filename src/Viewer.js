@@ -1296,10 +1296,8 @@ export class Viewer {
                 for (let s = 0; s < splatTree.subTrees.length; s++) {
                     const subTree = splatTree.subTrees[s];
                     modelView.copy(baseModelView);
-                    if (this.splatMesh.dynamicMode) {
-                        this.splatMesh.getSceneTransform(s, sceneTransform);
-                        modelView.multiply(sceneTransform);
-                    }
+                    this.splatMesh.getSceneTransform(s, sceneTransform);
+                    modelView.multiply(sceneTransform);
                     const nodeCount = subTree.nodesWithIndexes.length;
                     for (let i = 0; i < nodeCount; i++) {
                         const node = subTree.nodesWithIndexes[i];
