@@ -335,11 +335,13 @@ export class Viewer {
                 if (controls) {
                     controls.listenToKeyEvents(window);
                     controls.rotateSpeed = 0.5;
-                    controls.maxPolarAngle = Math.PI * .75;
+                    controls.maxPolarAngle = Math.PI * .6;
                     controls.minPolarAngle = 0.1;
-                    controls.enableDamping = true;
+                    controls.enableDamping = false;
+                    controls.screenSpacePanning = false;
                     controls.dampingFactor = 0.05;
                     controls.target.copy(this.initialCameraLookAt);
+                    controls.enableZoom = false;
                 }
             }
             this.controls = this.camera.isOrthographicCamera ? this.orthographicControls : this.perspectiveControls;
